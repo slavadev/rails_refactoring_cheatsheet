@@ -10,7 +10,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
 - [View](#view)
 
 ## General
-- Add comments and documentation using [YARD](https://yardoc.org/). Check `.yardopts` file for custom tags that you can use. Add new if you need
+- Add comments and documentation using [YARD](https://yardoc.org/)
   ```
   # Creates a dog and booth for a dog
   #
