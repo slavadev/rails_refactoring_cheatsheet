@@ -7,7 +7,6 @@ Based on [this article](http://link_will_be_here)
 - [Repository](#repository)
 - [Operation](#operation)
 - [Controller](#controller)
-- [View](#view)
 
 ## General
 - Add comments and documentation using [YARD](https://yardoc.org/). Check `.yardopts` file for custom tags that you can use. Add new if you need
@@ -28,7 +27,7 @@ Based on [this article](http://link_will_be_here)
     #...
   end
   ```
-- Try to write code that will be easy to test(create small methods that you can easy mock)
+- Try to write code that will be easy to test(create small methods that you can easy stub)
   ```
   # In main code
   def repo
@@ -49,6 +48,7 @@ Based on [this article](http://link_will_be_here)
     allow(repo).to receive(:create).and_raise(ValidationError)
   end
   ```
+- Don't forget to add integration tests if you use stubbing and mocking a lot
 - Follow some styleguide. Check your code with [Rubocop](https://github.com/rubocop-hq/rubocop)
 - Ask your teammembers if you hesitating at any point
 
@@ -279,6 +279,48 @@ Based on [this article](http://link_will_be_here)
       end
       
       #...
+    end
+  end
+  ```
+## Controller
+### Good
+- Place here code responsible for calling operations and deciding what to render depending on results and happened errors.
+  ```
+  class DogsController < ApplicationController
+    #...
+    def create
+      @dog = DogOperations::Create.new.(params: params)
+      render_dog()
+    rescue UnauthorizedError => e
+      handle_unauthorized_error(e)
+    rescue ValidationError => e
+      handle_validation_error(e)
+    end
+
+    #...
+  end
+  ```
+- It's ok to have methods used in your views in `Controller` while you keep it clear
+  ```
+  class DogsController < ApplicationController
+    #...
+
+    helper_method :can_create?
+
+    private
+
+    def can_create?
+      #...
+    end
+  end
+  ```
+### Bad
+- Don't call Repositories and Model methods from the controller. They should be called from Operations. Controller only get results of Operations and render it
+  ```
+  class DogsController < ApplicationController
+    def create
+      @dog = Dog.create(params) # Bad - Call an Operation instead
+      @dog = DogsRepository.create(params) # Bad - Call an Operation instead
     end
   end
   ```
