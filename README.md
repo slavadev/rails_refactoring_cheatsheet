@@ -7,6 +7,7 @@ Based on [this article](http://link_will_be_here)
 - [Repository](#repository)
 - [Operation](#operation)
 - [Controller](#controller)
+- [View](#view)
 
 ## General
 - Add comments and documentation using [YARD](https://yardoc.org/). Check `.yardopts` file for custom tags that you can use. Add new if you need
@@ -324,3 +325,41 @@ Based on [this article](http://link_will_be_here)
     end
   end
   ```
+## View
+### Good
+- Use views as templates not as a place where you decide what to render
+  ```
+  .title
+    = title
+  .main
+    - if can_create?
+      = a
+    - else
+      = b
+  ```
+### Bad
+ - Don't put any business logic in views
+   ```
+    .title
+      = title
+    .main
+      - if current_user.can?(:whatever) # Bad - Create a method in controller and call it here
+        = a
+      - else
+        = b
+    ```
+  - Don't use helpers for not global methods. Add methods to contoller and use `helper_method` instead
+    ```
+    class DogsController < ApplicationController
+      #...
+
+      helper_method :can_create?
+
+      private
+
+      def can_create?
+        #...
+      end
+    end
+    ```
+  
