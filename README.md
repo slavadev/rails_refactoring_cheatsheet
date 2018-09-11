@@ -1,5 +1,5 @@
 # Rails Refactoring Cheatsheet
-Based on [this article](http://link_will_be_here)
+Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to-refactor-big-rails-projects-12fc4e4ddcd2)
 
 ## Table of Content
 - [General](#general)
