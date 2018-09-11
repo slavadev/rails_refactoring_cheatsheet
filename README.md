@@ -169,7 +169,7 @@ Based on [this article](http://link_will_be_here)
     #...
   end
   ```
-## Bad
+### Bad
 - Don't change other models in the repository of the model. It should be done in `Operation` and use another `Repository`
   ```
   class DogsRepository
@@ -184,10 +184,100 @@ Based on [this article](http://link_will_be_here)
 - Don't call other Repositories and Operations from the repository. Repositories should be called from Operations and Operations should be called from other operations or layer above them(Controller, API, Console etc.)
   ```
   class DogsRepository
+    #...
     def create(params)
       dog = Dog.create(params)
       booth = BoothsRepository.new.create(dog: dog) # Bad - Move to Operation
       DogsOperations::Bark.new.call(dog) # Bad - Move to Operation
+      #...
+    end
+  end
+  ```
+## Operation
+### Good
+- Place here a code related to one business operation. Operation should have one public method `call`.
+  ```
+  module DogsOperations
+    class Create
+      attr_reader :dogs_repo, :booths_repo
+
+      def initialize
+        @dogs_repo = DogsRepository.new
+        @booths_repo = BoothsRepository.new
+      end
+
+      #...
+      def call(context:, params:)
+        authorize(context)
+        dog_params = prepare_params(params)
+        dog = dogs_repo.create(dog_params)
+        create_booth_for(dog)
+        dog
+      end
+      
+      #...
+    end
+  end
+  ```
+- It's ok to call other operations from `Operation`. Place all dependencies in `initialize` method and create an `attr_reader` for each dependency to make it easy to mock in tests.
+  ```
+  module DogsOperations
+    class Create
+      attr_reader :dogs_repo, :bark_operation
+
+      def initialize
+        @dogs_repo = DogsRepository.new
+        @bark_operation = DogsOperations::Bark.new
+      end
+
+      #...
+    end
+  end
+  
+  # In tests
+  describe DogsOperations::Create do
+    let(:repo) { double('DogsRepository') }
+    let(:bark) { double('DogsOperations::Bark') }
+    before do
+      allow(create_operation).to receive(:dogs_repo).and_return(repo)
+      allow(create_operation).to receive(:bark_operation).and_return(bark)
+      #...
+    end
+    
+    #...
+  end
+  ```
+### Bad
+- Don't call model methods that are database related. Use `Repository` instead.
+  ```
+  module DogsOperations
+    class Create
+      #...
+      
+      def call(context:, params:)
+        #...
+        dog = Dog.create(dog_params) # Bad - Use DogsRepository#create instead
+        #...
+      end
+      
+      #...
+    end
+  end
+  ```
+- Don't add to many different actions in one operation. Divide it to smaller operations and call them. Keep your operations rather small and clean
+  ```
+  module DogsOperations
+    class Create
+      #...
+      
+      def call(context:, params:)
+        action_1() 
+        action_2() 
+        action_3() 
+        #...
+        action_42() # Bad - Divide to smaller operations
+      end
+      
       #...
     end
   end
