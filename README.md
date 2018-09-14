@@ -41,7 +41,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
 
   # In specs
-  let(:repo) { double('DogsRepository') }
+  let(:repo) { instance_double('DogsRepository') }
   before do
     allow(create_operation).to receive(:repo).and_return(repo)
     allow(repo).to receive(:create).and_return(dog)
@@ -124,9 +124,14 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
 - Place here all your code which is responsible for querying(such as scopes) and managing entities(like creating and updating)
   ```
   class DogsRepository
+    attr_reader :model
+    
+    def initialize(model: Dog)
+      @model = model
+    end
     #...
     def all()
-      Dog.where('age > 1.0') # was a default scope
+      model.where('age > 1.0') # was a default scope
     end
 
     #...
@@ -153,7 +158,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
 
     #...
     def create(params)
-      dog = Dog.new(params)
+      dog = model.new(params)
       dog.size = dog.get_size_from_breed_and_age # was a callback before
       raise ValidationError, dog unless dog.save
       dog
@@ -202,9 +207,9 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
     class Create
       attr_reader :dogs_repo, :booths_repo
 
-      def initialize
-        @dogs_repo = DogsRepository.new
-        @booths_repo = BoothsRepository.new
+      def initialize(dogs_repo: DogsRepository.new, booths_repo: BoothsRepository.new)
+        @dogs_repo = dogs_repo
+        @booths_repo = booths_repo
       end
 
       #...
@@ -226,9 +231,9 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
     class Create
       attr_reader :dogs_repo, :bark_operation
 
-      def initialize
-        @dogs_repo = DogsRepository.new
-        @bark_operation = DogsOperations::Bark.new
+      def initialize(dogs_repo: DogsRepository.new, bark_operation: DogsOperations::Bark.new)
+        @dogs_repo = dogs_repo
+        @bark_operation = bark_operation
       end
 
       #...
@@ -237,14 +242,9 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   
   # In tests
   describe DogsOperations::Create do
-    let(:repo) { double('DogsRepository') }
-    let(:bark) { double('DogsOperations::Bark') }
-    before do
-      allow(create_operation).to receive(:dogs_repo).and_return(repo)
-      allow(create_operation).to receive(:bark_operation).and_return(bark)
-      #...
-    end
-    
+    let(:repo) { instance_double('DogsRepository') }
+    let(:bark) { instance_double('DogsOperations::Bark') }
+    let(:create_operation) { DogsOperations::Create.new(dogs_repo: repo, bark_operation: bark) }
     #...
   end
   ```
