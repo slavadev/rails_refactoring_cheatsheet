@@ -11,7 +11,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
 
 ## General
 - Add comments and documentation using [YARD](https://yardoc.org/)
-  ```
+  ```ruby
   # Creates a dog and booth for a dog
   #
   # @param context [Hash] context of operation(current user, current city etc.)
@@ -29,7 +29,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
   ```
 - Try to write code that will be easy to test(create small methods that you can easy stub)
-  ```
+  ```ruby
   # In main code
   def repo
     DogsRepository.new
@@ -56,7 +56,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
 ## Model
 ### Good
 - Place in the model only validations, associations, and methods that actually are related to the model.
-  ```
+  ```ruby
   class Dog < ApplicationRecord
     belongs_to :breed
     has_one :booth
@@ -76,7 +76,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
   ```
 - You can keep in the model all "extentions" you use
-  ```
+  ```ruby
   class Dog < ApplicationRecord
     acts_as_paranoid
     #...
@@ -86,14 +86,14 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
 
 ### Bad
 - Don't use callbacks like `after_*` and `before_*`. Put this code in `Repository` if it is DB-related code and in `Operation` if it is business logic
-  ```
+  ```ruby
   class Dog < ApplicationRecord
     before_save :calculate_size # Bad - Move it to Repository
     after_create :create_booth # Bad - Move it to Operation
   end
   ```
 - Don't use scopes in the model. Move them to `Repository`
-  ```
+  ```ruby
   class Dog < ApplicationRecord
     scope :all, -> { where('age > 1') } # Bad - Move it to Repository
 
@@ -104,13 +104,13 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
   ```
 - Don't use nested attributes for associations. Move creating, updating and deleting associations to `Operation`
-  ```
+  ```ruby
   class Dog < ApplicationRecord
     accepts_nested_attributes_for :booth # Bad - Move this logic to Operation
   end
   ```
 - Don't call Repositories and Operations from the model. Repositories should be called from Operations and Operations should be called from other operations or layer above them(Controller, API, Console etc.)
-  ```
+  ```ruby
   class Dog < ApplicationRecord
     def bark()
       similar_dog = DogsRepository.find_similar_to(self) # Bad - Move to Operation
@@ -122,7 +122,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
 ## Repository
 ### Good
 - Place here all your code which is responsible for querying(such as scopes) and managing entities(like creating and updating)
-  ```
+  ```ruby
   class DogsRepository
     attr_reader :model
     
@@ -166,7 +166,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
   ```
 - It's ok to have different repositories for one model
-  ```
+  ```ruby
   class Dogs::SmallDogsRepository
     #...
   end
@@ -177,7 +177,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   ```
 ### Bad
 - Don't change other models in the repository of the model. It should be done in `Operation` and use another `Repository`
-  ```
+  ```ruby
   class DogsRepository
     #...
     def create(params)
@@ -185,10 +185,9 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
       booth = Booth.create(dog) # Bad - Move it to operation and use another repository
       #...
     end
-  end
   ```
 - Don't call other Repositories and Operations from the repository. Repositories should be called from Operations and Operations should be called from other operations or layer above them(Controller, API, Console etc.)
-  ```
+  ```ruby
   class DogsRepository
     #...
     def create(params)
@@ -197,12 +196,12 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
       DogsOperations::Bark.new.call(dog) # Bad - Move to Operation
       #...
     end
-  end
   ```
+
 ## Operation
 ### Good
 - Place here a code related to one business operation. Operation should have one public method `call`.
-  ```
+  ```ruby
   module DogsOperations
     class Create
       attr_reader :dogs_repo, :booths_repo
@@ -226,7 +225,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
   ```
 - It's ok to call other operations from `Operation`. Place all dependencies in `initialize` method and create an `attr_reader` for each dependency to make it easy to mock in tests.
-  ```
+  ```ruby
   module DogsOperations
     class Create
       attr_reader :dogs_repo, :bark_operation
@@ -250,7 +249,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   ```
 ### Bad
 - Don't call model methods that are database related. Use `Repository` instead.
-  ```
+  ```ruby
   module DogsOperations
     class Create
       #...
@@ -266,7 +265,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
   ```
 - Don't add to many different actions in one operation. Divide it to smaller operations and call them. Keep your operations rather small and clean
-  ```
+  ```ruby
   module DogsOperations
     class Create
       #...
@@ -283,10 +282,11 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
     end
   end
   ```
+
 ## Controller
 ### Good
 - Place here code responsible for calling operations and deciding what to render depending on results and happened errors.
-  ```
+  ```ruby
   class DogsController < ApplicationController
     #...
     def create
@@ -302,7 +302,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   end
   ```
 - It's ok to have methods used in your views in `Controller` while you keep it clear
-  ```
+  ```ruby
   class DogsController < ApplicationController
     #...
 
@@ -317,18 +317,17 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   ```
 ### Bad
 - Don't call Repositories and Model methods from the controller. They should be called from Operations. Controller only get results of Operations and render it
-  ```
+  ```ruby
   class DogsController < ApplicationController
     def create
       @dog = Dog.create(params) # Bad - Call an Operation instead
       @dog = DogsRepository.create(params) # Bad - Call an Operation instead
     end
-  end
   ```
 ## View
 ### Good
 - Use views as templates not as a place where you decide what to render
-  ```
+  ```haml
   .title
     = title
   .main
@@ -339,7 +338,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
   ```
 ### Bad
  - Don't put any business logic in views
-   ```
+   ```haml
     .title
       = title
     .main
@@ -349,7 +348,7 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
         = b
     ```
   - Don't use helpers for not global methods. Add methods to contoller and use `helper_method` instead
-    ```
+    ```ruby
     class DogsController < ApplicationController
       #...
 
@@ -360,6 +359,5 @@ Based on [How To Refactor Big Rails Projects](https://medium.com/@korolvs/how-to
       def can_create?
         #...
       end
-    end
     ```
-  
+
